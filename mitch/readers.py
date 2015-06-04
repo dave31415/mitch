@@ -81,33 +81,6 @@ def convert_date_strings(data, warn=False):
                     print "warning - field %s not in object" % date_field
 
 
-def sales_versus_messages_plot():
-    sales = read('sales')
-
-    messages = read_merged_messages()
-    user_data = {}
-
-    for sale in sales:
-        user_id = sale['customer_external_id']
-        if user_id not in user_data:
-            user_data[user_id] = {'n_sales': 0, 'n_messages': 0}
-
-        user_data[user_id]['n_sales'] += 1
-
-    for message in messages:
-        user_id = message['user_id']
-        if user_id not in user_data:
-            user_data[user_id] = {'n_sales': 0, 'n_messages': 0}
-
-        user_data[user_id]['n_messages'] += 1
-
-    n_messages = [v['n_messages'] for v in user_data.itervalues()]
-    n_sales = [v['n_sales'] for v in user_data.itervalues()]
-
-
-    return user_data, n_messages, n_sales
-
-
 
 
 
