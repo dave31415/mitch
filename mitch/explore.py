@@ -104,7 +104,7 @@ def plot_days_after_sales(messages=None, purchase_dates=None):
 
     plt.clf()
     plt.subplot(2, 1, 1)
-    plt.plot(n_days, n_sales, color='blue', marker='o', linetsyle='-')
+    plt.plot(n_days, n_sales, color='blue', marker='o', linestyle='-')
     plt.axvline(x=0, linestyle='--', color='red')
     plt.title('Normal')
     plt.xlabel('N days after message')
@@ -114,7 +114,7 @@ def plot_days_after_sales(messages=None, purchase_dates=None):
     n_days_randomized, n_sales_randomized = days_sales(count_of_days_randomized)
 
     plt.subplot(2, 1, 2)
-    plt.plot(n_days_randomized, n_sales_randomized, color='blue', marker='o', linetsyle='-')
+    plt.plot(n_days_randomized, n_sales_randomized, color='blue', marker='o', linestyle='-')
     plt.axvline(x=0, linestyle='--', color='red')
     plt.title('Users randomized')
     plt.xlabel('N days after message')
