@@ -1,9 +1,8 @@
 from readers import read, read_merged_messages
-from datetime import datetime
 from collections import defaultdict, Counter
 import numpy as np
 from matplotlib import pylab as plt
-
+import date_utils as du
 
 def sales_versus_messages_plot():
     sales = read('sales')
@@ -34,18 +33,16 @@ def sales_versus_messages_plot():
 def get_purchase_dates():
     sales = read('sales')
     purchase_dates = defaultdict(list)
-    date_format = "%Y/%m/%d"
     for sale in sales:
         user_id = sale['customer_external_id']
         purchase_date_string = sale['purchase_date']
-        purchase_date = datetime.strptime(purchase_date_string, date_format)
+        purchase_date = du.ymd_to_date(purchase_date_string)
         purchase_dates[user_id].append(purchase_date)
     return purchase_dates
 
 
 def sales_days_from_messages(messages=None, purchase_dates=None,
                              randomize=False, days_max=100):
-    date_format = "%m/%d/%Y %H:%M:%S"
     if messages is None:
         print 'reading messages'
         messages = read_merged_messages()
@@ -72,7 +69,7 @@ def sales_days_from_messages(messages=None, purchase_dates=None,
 
             if 'campaign_sent_at' in message and message['campaign_sent_at']:
                 date_string = message['campaign_sent_at']
-                message_date = datetime.strptime(date_string, date_format)
+                message_date = du.mdy_to_date(date_string)
                 for user_purchase_date in user_purchase_dates:
                     diff_days = (user_purchase_date - message_date).days
                     if abs(diff_days) <= days_max:
@@ -128,7 +125,7 @@ def plot_days_after_sales_ratio(messages=None, purchase_dates=None):
 
     plt.clf()
     plt.subplot(2, 1, 1)
-    plt.plot(n_days, n_sales, color='blue', marker='o', linestyle='-')
+    plt.plot(n_days, n_sales, color='blue', marker='o', linestyle='-', label='Normal')
     plt.axvline(x=0, linestyle='--', color='red')
     plt.xlabel('N days after message')
     plt.ylabel('N sales')
@@ -136,7 +133,9 @@ def plot_days_after_sales_ratio(messages=None, purchase_dates=None):
     count_of_days_randomized = sales_days_from_messages(messages=messages, purchase_dates=purchase_dates, randomize=True)
     n_days_randomized, n_sales_randomized = days_sales(count_of_days_randomized)
 
-    plt.plot(n_days_randomized, n_sales_randomized, color='magenta', marker='o', linestyle='-')
+    plt.plot(n_days_randomized, n_sales_randomized, color='magenta', marker='o',
+             linestyle='-', label='Randomized')
+    plt.legend()
 
     plt.subplot(2, 1, 1)
     rat = {}
@@ -153,7 +152,7 @@ def plot_days_after_sales_ratio(messages=None, purchase_dates=None):
     ratio = np.array(ratio)[s]
 
     plt.subplot(2, 1, 2)
-    plt.plot(days, ratio)
+    plt.plot(days, ratio, color='blue', marker='o', linestyle='-')
     plt.xlabel('N days after message')
     plt.ylabel('Ratio Normal/Randomized')
     plt.axvline(x=0, linestyle='--', color='red')
