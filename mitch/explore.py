@@ -43,17 +43,21 @@ def get_purchase_dates():
     return purchase_dates
 
 
-def sales_days_from_messages(messages=None, purchase_dates=None, randomize=False):
+def sales_days_from_messages(messages=None, purchase_dates=None,
+                             randomize=False, days_max=100):
     date_format = "%m/%d/%Y %H:%M:%S"
     if messages is None:
+        print 'reading messages'
         messages = read_merged_messages()
     n_messages = len(messages)
     if purchase_dates is None:
+        print 'reading purchase dates'
         purchase_dates = get_purchase_dates()
-    days_between_purchase_and_message = []
 
     no_user = 0
     no_date = 0
+
+    count_of_days = Counter()
 
     for i, message in enumerate(messages):
         if (i % 1000) == 0:
@@ -71,7 +75,8 @@ def sales_days_from_messages(messages=None, purchase_dates=None, randomize=False
                 message_date = datetime.strptime(date_string, date_format)
                 for user_purchase_date in user_purchase_dates:
                     diff_days = (user_purchase_date - message_date).days
-                    days_between_purchase_and_message.append(diff_days)
+                    if abs(diff_days) <= days_max:
+                        count_of_days[diff_days] += 1
             else:
                 no_date += 1
         else:
@@ -80,14 +85,10 @@ def sales_days_from_messages(messages=None, purchase_dates=None, randomize=False
     print "number with no user in sales: %s of %s" % (no_user, n_messages)
     print "number with no date: %s of %s" % (no_date, n_messages)
 
-    return days_between_purchase_and_message
+    return count_of_days
 
 
-def count_days(days):
-    count_of_days = Counter()
-    for d in days:
-        count_of_days[d] += 1
-
+def days_sales(count_of_days):
     n_days = np.array(count_of_days.keys())
     n_sales = np.array(count_of_days.values())
     s = np.argsort(n_days)
@@ -98,22 +99,22 @@ def count_days(days):
 
 def plot_days_after_sales(messages=None, purchase_dates=None):
 
-    days = sales_days_from_messages(messages=None, purchase_dates=None, randomize=False)
-    n_days, n_sales = count_days(days)
+    count_of_days = sales_days_from_messages(messages=messages, purchase_dates=purchase_dates, randomize=False)
+    n_days, n_sales = days_sales(count_of_days)
 
     plt.clf()
-    plt.subplots(121)
-    plt.plot(n_days, n_sales, 'bo')
+    plt.subplot(2, 1, 1)
+    plt.plot(n_days, n_sales, color='blue', marker='o', linetsyle='-')
     plt.axvline(x=0, linestyle='--', color='red')
-    plt.title('')
+    plt.title('Normal')
     plt.xlabel('N days after message')
     plt.ylabel('N sales')
 
-    days_randomized = sales_days_from_messages(messages=None, purchase_dates=None, randomize=True)
-    n_days_randomized, n_sales_randomized = count_days(days_randomized)
+    count_of_days_randomized = sales_days_from_messages(messages=messages, purchase_dates=purchase_dates, randomize=True)
+    n_days_randomized, n_sales_randomized = days_sales(count_of_days_randomized)
 
-    plt.subplots(121)
-    plt.plot(n_days_randomized, n_sales_randomized, 'bo')
+    plt.subplot(2, 1, 2)
+    plt.plot(n_days_randomized, n_sales_randomized, color='blue', marker='o', linetsyle='-')
     plt.axvline(x=0, linestyle='--', color='red')
     plt.title('Users randomized')
     plt.xlabel('N days after message')
