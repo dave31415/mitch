@@ -121,3 +121,42 @@ def plot_days_after_sales(messages=None, purchase_dates=None):
     plt.ylabel('N sales')
 
 
+def plot_days_after_sales_ratio(messages=None, purchase_dates=None):
+    #just a single plot with two lines
+    count_of_days = sales_days_from_messages(messages=messages, purchase_dates=purchase_dates, randomize=False)
+    n_days, n_sales = days_sales(count_of_days)
+
+    plt.clf()
+    plt.subplot(2, 1, 1)
+    plt.plot(n_days, n_sales, color='blue', marker='o', linestyle='-')
+    plt.axvline(x=0, linestyle='--', color='red')
+    plt.xlabel('N days after message')
+    plt.ylabel('N sales')
+
+    count_of_days_randomized = sales_days_from_messages(messages=messages, purchase_dates=purchase_dates, randomize=True)
+    n_days_randomized, n_sales_randomized = days_sales(count_of_days_randomized)
+
+    plt.plot(n_days_randomized, n_sales_randomized, color='magenta', marker='o', linestyle='-')
+
+    plt.subplot(2, 1, 1)
+    rat = {}
+    for days, count in count_of_days.iteritems():
+        if days in count_of_days_randomized:
+            count_random = count_of_days_randomized[days]
+            if count_random > 0:
+                rat[days] = count/float(count_random)
+    days = rat.keys()
+    ratio = rat.values()
+
+    s = np.argsort(days)
+    days = np.array(days)[s]
+    ratio = np.array(ratio)[s]
+
+    plt.subplot(2, 1, 2)
+    plt.plot(days, ratio)
+    plt.xlabel('N days after message')
+    plt.ylabel('Ratio Normal/Randomized')
+    plt.axvline(x=0, linestyle='--', color='red')
+
+
+
