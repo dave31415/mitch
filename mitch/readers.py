@@ -1,6 +1,7 @@
 from params import data_dir
 from csv import DictReader
 from datetime import datetime
+import numpy as np
 
 
 def file_names():
@@ -9,6 +10,7 @@ def file_names():
         'users': "%s/spree_users_20150528.csv" % data_dir,
         'campaigns': "%s/product_list.csv" % data_dir,
         'messages': "%s/product_lists_users_20150528.csv" % data_dir,
+        'orders': "%s/spree_orders_20150528.csv" % data_dir
     }
     return files
 
@@ -28,7 +30,7 @@ def read_merged_messages(warn=False):
     campaigns = read('campaigns')
     users = read('users')
 
-    user_fields = ['id', 'firstname', 'lastname', 'household_id', 'client']
+    user_fields = ['id', 'firstname', 'lastname', 'household_id', 'client', 'customer_external_id']
     campaign_fields = ['id', 'name', 'sent_at', 'seller_id', 'store_id',
                        'created_at', 'updated_at', 'type', 'parent_id']
 
@@ -58,6 +60,13 @@ def read_merged_messages(warn=False):
 
     print "%s missing users" % missing_users
     print "%s missing campaigns" % missing_campaigns
+
+    user_ids = np.array([u['user_customer_external_id'] for u in messages])
+    np.random.seed(4236363)
+    np.random.shuffle(user_ids)
+    np.random.seed(None)
+    for random_id, message in zip(user_ids, messages):
+        message['user_customer_external_id_random'] = random_id
 
     return messages
 
