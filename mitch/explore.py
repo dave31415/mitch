@@ -4,6 +4,7 @@ import numpy as np
 from matplotlib import pylab as plt
 import date_utils as du
 
+
 def sales_versus_messages_plot():
     sales = read('sales')
 
@@ -64,7 +65,7 @@ def sales_days_from_messages(messages=None, purchase_dates=None,
         else:
             user_id = message['user_customer_external_id']
 
-        if user_id in purchase_dates:
+        if user_id in purchase_dates and user_id:
             user_purchase_dates = purchase_dates[user_id]
 
             if 'campaign_sent_at' in message and message['campaign_sent_at']:
