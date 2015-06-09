@@ -139,7 +139,9 @@ def count_sales_days_since_message(messages=None, purchases=None):
         # calculate P(n) can do this simply by choosing a random purchase date
         # rather than the actual purchase date
 
+        np.random.seed(14627283)
         random_purchase_date_index = np.random.randint(n_purchase_dates)
+        np.random.seed(None)
         random_purchase_date = purchase_dates[random_purchase_date_index]
 
         last_message_date_random, n_days_since_last_message_random = \
