@@ -46,7 +46,7 @@ def make_last_date_lookup(messages=None):
 
 def make_last_date_lookup_function(messages=None):
     # make a closure to return the last message date for a user_id and a date
-    # and the number of days since the last message date
+    # and the number of days since that last message date
     user_date_set = make_last_date_lookup(messages)
 
     def last_date_function(user_id, this_date):
@@ -63,9 +63,39 @@ def make_last_date_lookup_function(messages=None):
     return last_date_function
 
 
+def get_start_end_dates(messages, buffer_days):
+    delta_days = timedelta(buffer_days)
+    message_dates = du.get_all_message_dates(messages)
+    message_date_min = min(message_dates)
+    #start at a date with enough time for the first messages to effect things
+    start_date = message_date_min + delta_days
+    end_date = max(message_dates)
+    return start_date, end_date
+
+
+def purchase_date_user_id(purchase):
+    if 'purchase_date' not in purchase:
+        return None, None
+
+    purchase_date_string = purchase['purchase_date']
+    if not purchase_date_string:
+        return None, None
+
+    if 'customer_external_id' not in purchase:
+        return None, None
+
+    user_id = purchase['customer_external_id']
+
+    if not user_id:
+        return None, None
+
+    purchase_date = du.ymd_to_date(purchase_date_string)
+
+    return purchase_date, user_id
+
+
 def count_sales_days_since_message(messages=None, purchases=None):
     buffer_days = 60
-    delta_days = timedelta(buffer_days)
 
     if messages is None:
         print 'reading messages'
@@ -75,55 +105,39 @@ def count_sales_days_since_message(messages=None, purchases=None):
         print 'reading purchase dates'
         purchases = list(read('sales'))
 
-    message_dates = du.get_all_message_dates(messages)
-    message_date_min = min(message_dates)
-    #start at a date with enough time for the first messages to effect things
-    start_date = message_date_min + delta_days
-    end_date = max(message_dates)
+    start_date, end_date = get_start_end_dates(messages, buffer_days)
 
     n_dates = (end_date - start_date).days + 1
     print 'start_date:', start_date
     print 'end_date:', end_date
     print 'n_dates: %s\n' % n_dates
 
-    purchase_dates_unique = du.get_all_purchase_dates(purchases)
-    purchase_dates_unique = [i for i in purchase_dates_unique if start_date <= i <= end_date]
-    n_purchase_dates_unique = len(purchase_dates_unique)
-
-    print 'purchase_start_date:', min(purchase_dates_unique)
-    print 'purchase_end_date:', max(purchase_dates_unique)
-    print 'n_purchase_dates_unique:', n_purchase_dates_unique
-
     print 'making last date lookup function'
 
     last_date_function = make_last_date_lookup_function(messages)
 
+    # to calculate P(n | X=1), X is sale
     n_days_counter = Counter()
+    # to calculate P(n)
     n_days_counter_random = Counter()
 
     purchase_dates = [du.ymd_to_date(i['purchase_date']) for i in purchases]
     n_purchase_dates = len(purchase_dates)
 
     for purchase in purchases:
-        if 'purchase_date' not in purchase:
+
+        purchase_date, user_id = purchase_date_user_id(purchase)
+        if purchase_date is None:
             continue
 
-        purchase_date_string = purchase['purchase_date']
-        if not purchase_date_string:
-            continue
-
-        if 'customer_external_id' not in purchase:
-            continue
-
-        user_id = purchase['customer_external_id']
-
-        if not user_id:
-            continue
-
-        purchase_date = du.ymd_to_date(purchase_date_string)
-
+        # calculate P(n | X=1), X=1 is sale happens
         last_message_date, n_days_since_last_message = \
             last_date_function(user_id, purchase_date)
+
+        n_days_counter[n_days_since_last_message] += 1
+
+        # calculate P(n) can do this simply by choosing a random purchase date
+        # rather than the actual purchase date
 
         random_purchase_date_index = np.random.randint(n_purchase_dates)
         random_purchase_date = purchase_dates[random_purchase_date_index]
@@ -131,7 +145,6 @@ def count_sales_days_since_message(messages=None, purchases=None):
         last_message_date_random, n_days_since_last_message_random = \
             last_date_function(user_id, random_purchase_date)
 
-        n_days_counter[n_days_since_last_message] += 1
         n_days_counter_random[n_days_since_last_message_random] += 1
 
     return n_days_counter, n_days_counter_random
