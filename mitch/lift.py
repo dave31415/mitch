@@ -197,23 +197,26 @@ def binning_function(days, factor):
 
 
 def bin_days_ratio(days, ratio, factor=9.0):
+    #TODO: maybe refactor and use itertools
     bins = binning_function(days, factor)
     data = {}
 
     for day, rat, bin in zip(days, ratio, bins):
         if bin not in data:
-            data[bin] = {'num': 0, 'sum_days': 0.0, 'sum_ratio': 0.0}
+            data[bin] = {'num': 0, 'sum_days': 0.0, 'sum_ratio': 0.0, 'sum_ratio_squared': 0.0}
         data[bin]['num'] += 1
         data[bin]['sum_days'] += day
         data[bin]['sum_ratio'] += rat
+        data[bin]['sum_ratio_squared'] += rat*rat
     for bin, vals in data.iteritems():
         vals['mean_days'] = vals['sum_days']/vals['num']
         vals['mean_ratio'] = vals['sum_ratio']/vals['num']
+        vals['sigma_ratio'] = np.sqrt((vals['sum_ratio_squared']/vals['num']) - vals['mean_ratio']**2)
     return data
 
 
 def plot_ratios(n_days_counter, n_days_counter_random, scale=1.0,
-                color="gray", factor=9.0, nmax=200):
+                color="gray", factor=9.0, nmax=250, nboot=1000):
     days, ratio = get_days_ratio(n_days_counter, n_days_counter_random,
                                  scale=scale, nmax=nmax)
 
@@ -226,15 +229,15 @@ def plot_ratios(n_days_counter, n_days_counter_random, scale=1.0,
     mean_ratio = np.array([i['mean_ratio'] for i in data.values()])
     plt.plot(mean_days, mean_ratio, color="blue", marker='o', markersize=8)
 
-    fit = fit_ratio(days, ratio)
-    params = fit[0]
-    baseline = params[0]
-    alpha = params[1]
-    beta = params[2]
+    fit, boot = boot_fit(days,ratio, nboot=nboot)
+    baseline = fit['baseline']
+    alpha = fit['alpha']
+    beta = fit['beta']
 
     lift30 = exponential_lift(alpha, beta)
-    alpha_error = np.sqrt(fit[1][1, 1])
-    beta_error = np.sqrt(fit[1][2, 2])
+    alpha_error = fit['alpha_error']
+    beta_error = fit['beta_error']
+    baseline_error = fit['baseline_error']
 
     relative_alpha = (alpha_error/alpha)
     relative_beta = (beta_error/beta)
@@ -243,11 +246,10 @@ def plot_ratios(n_days_counter, n_days_counter_random, scale=1.0,
     lift30_error = lift30 * relative_error_lift
 
     print 'alpha: %0.4f +/- %0.4f' % (alpha, alpha_error)
-    print 'beta: %s days, baseline: %s' % (beta, baseline)
+    print 'beta: %s +/- %s days' % (beta, beta_error)
+    print 'baseline: %0.4f +/- %0.4f' % (baseline, baseline_error)
     print 'Average daily lift over 30 days: %0.4f +/- %0.4f' % (lift30, lift30_error)
 
-    fitted_values = exponential_with_baseline(days, *params)
+    fitted_values = exponential_with_baseline(days, baseline, alpha, beta)
     plt.plot(days, fitted_values, color="magenta")
     plt.plot(days, baseline+days*0.0, color='gray', linestyle='--')
-
-    print fit

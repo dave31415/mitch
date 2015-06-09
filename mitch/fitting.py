@@ -29,9 +29,9 @@ def exponential_residual(params, x, data, eps_data):
 
 def fit_ratio_lmfit(days, ratio):
     params = Parameters()
-    params.add('alpha', value=0.25, min=-0.3, max=4.0)
-    params.add('beta', value=40.0, min=9.0, max=90.0)
-    params.add('baseline', value=0.85, min=0.5, max=1.3)
+    params.add('alpha', value=0.3, min=-0.3, max=4.0)
+    params.add('beta', value=40.0, min=9.0, max=100.0)
+    params.add('baseline', value=0.75, min=0.5, max=1.0)
 
     eps_data = ratio*0.1+0.1
     fit = minimize(exponential_residual, params, args=(days, ratio, eps_data))
@@ -73,12 +73,11 @@ def boot_fit(days, ratio, nboot=100):
         baseline = fit_boot[0][0]
         lift = exponential_lift(alpha, beta)
         data = {'alpha': alpha, 'beta': beta, 'baseline': baseline, 'lift': lift}
-        print data
         boots.append(data)
 
     for param in result.keys():
         par = np.array([b[param] for b in boots])
         result[param+'_mean'] = par.mean()
-        result[param+'_sigma'] = par.std()
+        result[param+'_error'] = par.std()
     result['nboot'] = nboot
     return result, boots
