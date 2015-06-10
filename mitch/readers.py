@@ -1,7 +1,7 @@
 from params import data_dir
 from csv import DictReader
 from datetime import datetime
-from itertools import groupby
+
 
 def file_names():
     files = {
@@ -89,10 +89,5 @@ def convert_date_strings(data, warn=False):
             else:
                 if warn:
                     print "warning - field %s not in object" % date_field
-
-
-
-
-
 
 
