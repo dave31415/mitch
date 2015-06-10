@@ -97,12 +97,8 @@ def purchase_date_user_id(purchase):
     return purchase_date, user_id
 
 
-def count_sales_days_since_message(messages=None, purchases=None,
-                                   niter_random=1, doplot=False, color="blue"):
-    buffer_days = 60
-
-    start_time = time.time()
-
+def messages_purchases(messages, purchases):
+    #utility for optionally reading these
     if messages is None:
         print 'reading messages'
         messages = read_merged_messages()
@@ -110,6 +106,18 @@ def count_sales_days_since_message(messages=None, purchases=None,
     if purchases is None:
         print 'reading purchase dates'
         purchases = read('sales')
+
+    return messages, purchases
+
+
+def count_sales_days_since_message(messages=None, purchases=None,
+                                   niter_random=1, doplot=False, color="blue"):
+    buffer_days = 60
+
+    start_time = time.time()
+
+    #read if not provided
+    messages, purchases = messages_purchases(messages, purchases)
 
     #be sure it's a list not a generator
     if not isinstance(purchases, list):
@@ -217,22 +225,34 @@ def bin_days_ratio(days, ratio, factor=9.0):
     return data
 
 
-def plot_ratios(n_days_counter, n_days_counter_random, scale=1.0,
-                color="gray", factor=9.0, nmax=250, nboot=1000):
-    days, ratio = get_days_ratio(n_days_counter, n_days_counter_random,
-                                 scale=scale, nmax=nmax)
-
+def get_binned_days_ratio_from_counters(days, ratio, factor=9.0):
     binned_data = bin_days_ratio(days, ratio, factor=factor)
+    mean_days = np.array([i['mean_days'] for i in binned_data.values()])
+    mean_ratio = np.array([i['mean_ratio'] for i in binned_data.values()])
+    return mean_days, mean_ratio
+
+
+def get_lift_data(messages=None, purchases=None):
+    messages, purchases = messages_purchases(messages, purchases)
+    n_days_counter, n_days_counter_random = \
+        count_sales_days_since_message(messages=messages, purchases=purchases)
+    days, ratio = get_days_ratio(n_days_counter, n_days_counter_random, nmax=200)
+    mean_days, mean_ratio = get_binned_days_ratio_from_counters(days, ratio)
+
+    return days, ratio, mean_days, mean_ratio
+
+
+def plot_ratios():
+
+    days, ratio, mean_days, mean_ratio = get_lift_data(messages=None, purchases=None)
 
     plt.plot(days, ratio, color=color, alpha=0.3)
     plt.xlabel('N days since message')
     plt.ylabel('Sales Lift')
 
-    mean_days = np.array([i['mean_days'] for i in binned_data.values()])
-    mean_ratio = np.array([i['mean_ratio'] for i in binned_data.values()])
     plt.plot(mean_days, mean_ratio, color="blue", marker='o', markersize=8)
 
-    fit, boot = boot_fit(days,ratio, nboot=nboot)
+    fit, boot = boot_fit(days, ratio, nboot=nboot)
     baseline = fit['baseline']
     alpha = fit['alpha']
     beta = fit['beta']
