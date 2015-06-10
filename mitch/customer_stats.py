@@ -33,7 +33,7 @@ def customer_stats(outfile=None):
         dw.writeheader()
         for user_id, row in stats.iteritems():
             dw.writerow(row)
-            
+
     return stats
 
 if __name__ == '__main__':
