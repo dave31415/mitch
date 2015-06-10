@@ -29,7 +29,7 @@ def make_last_date_lookup(messages=None):
         user_id = message['user_customer_external_id']
         if not user_id:
             continue
-        if 'campaign_sent_at_date' not in message:
+        if 'campaign_sent_at' not in message:
             continue
         sent_date_string = message['campaign_sent_at']
         if not sent_date_string:
@@ -41,6 +41,8 @@ def make_last_date_lookup(messages=None):
     #make sorted numpy array
     for user_id, date_set in user_date_set.iteritems():
         user_date_set[user_id] = np.array(sorted(list(date_set)))
+
+    print '%s users in lookup' % len(user_date_set)
 
     return user_date_set
 
@@ -96,7 +98,7 @@ def purchase_date_user_id(purchase):
 
 
 def count_sales_days_since_message(messages=None, purchases=None,
-                                   niter_random=1, doplot=True, color="blue"):
+                                   niter_random=1, doplot=False, color="blue"):
     buffer_days = 60
 
     start_time = time.time()
@@ -220,13 +222,14 @@ def plot_ratios(n_days_counter, n_days_counter_random, scale=1.0,
     days, ratio = get_days_ratio(n_days_counter, n_days_counter_random,
                                  scale=scale, nmax=nmax)
 
+    binned_data = bin_days_ratio(days, ratio, factor=factor)
+
     plt.plot(days, ratio, color=color, alpha=0.3)
     plt.xlabel('N days since message')
     plt.ylabel('Sales Lift')
 
-    data = bin_days_ratio(days, ratio, factor=factor)
-    mean_days = np.array([i['mean_days'] for i in data.values()])
-    mean_ratio = np.array([i['mean_ratio'] for i in data.values()])
+    mean_days = np.array([i['mean_days'] for i in binned_data.values()])
+    mean_ratio = np.array([i['mean_ratio'] for i in binned_data.values()])
     plt.plot(mean_days, mean_ratio, color="blue", marker='o', markersize=8)
 
     fit, boot = boot_fit(days,ratio, nboot=nboot)
@@ -245,11 +248,17 @@ def plot_ratios(n_days_counter, n_days_counter_random, scale=1.0,
     relative_error_lift = np.sqrt(relative_alpha**2 + relative_beta**2)
     lift30_error = lift30 * relative_error_lift
 
+    lift = lift30/baseline
+    lift_error = lift30_error/baseline
+
     print 'alpha: %0.4f +/- %0.4f' % (alpha, alpha_error)
     print 'beta: %s +/- %s days' % (beta, beta_error)
     print 'baseline: %0.4f +/- %0.4f' % (baseline, baseline_error)
     print 'Average daily lift over 30 days: %0.4f +/- %0.4f' % (lift30, lift30_error)
+    print 'Lift: %0.4f +/- %0.4f' % (lift, lift_error)
 
     fitted_values = exponential_with_baseline(days, baseline, alpha, beta)
     plt.plot(days, fitted_values, color="magenta")
     plt.plot(days, baseline+days*0.0, color='gray', linestyle='--')
+    title = 'Lift: %0.3f +/- %0.3f' % (lift, lift_error)
+    plt.title(title)

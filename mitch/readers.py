@@ -1,8 +1,7 @@
 from params import data_dir
 from csv import DictReader
 from datetime import datetime
-import numpy as np
-
+from itertools import groupby
 
 def file_names():
     files = {
@@ -25,6 +24,8 @@ def read_merged_messages(warn=False):
     reads the messages file and joins it to users and campaigns
     only keeps a subset of columns
     """
+    #don't really need numpy for this but ok for now
+    import numpy as np
 
     messages = list(read('messages'))
     campaigns = read('campaigns')
