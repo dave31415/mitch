@@ -8,4 +8,4 @@ pip install lmfit
 
 The data files are NOT included but can be obtained from the the author.
 
-Edit the params.py file tp point to the right path to the data.
+Edit the params.py file to point to the right path to the data.
