@@ -150,7 +150,7 @@ def count_sales_days_since_message(messages=None, purchases=None,
     n_purchases = len(purchases)
 
     for i, purchase in enumerate(purchases):
-        if i % 1000 == 0:
+        if i % 10000 == 0:
             print '%s of %s' % (i, n_purchases)
 
         purchase_date, user_id = purchase_date_user_id(purchase)
@@ -242,17 +242,16 @@ def get_lift_data(messages=None, purchases=None):
     return days, ratio, mean_days, mean_ratio
 
 
-def plot_ratios():
+def plot_ratios(messages=None, purchases=None, title=''):
+    days, ratio, mean_days, mean_ratio = get_lift_data(messages, purchases)
 
-    days, ratio, mean_days, mean_ratio = get_lift_data(messages=None, purchases=None)
-
-    plt.plot(days, ratio, color=color, alpha=0.3)
+    plt.plot(days, ratio, color='gray', alpha=0.3)
     plt.xlabel('N days since message')
     plt.ylabel('Sales Lift')
 
     plt.plot(mean_days, mean_ratio, color="blue", marker='o', markersize=8)
 
-    fit, boot = boot_fit(days, ratio, nboot=nboot)
+    fit, boot = boot_fit(mean_days, mean_ratio, nboot=1000)
     baseline = fit['baseline']
     alpha = fit['alpha']
     beta = fit['beta']
@@ -277,8 +276,8 @@ def plot_ratios():
     print 'Average daily lift over 30 days: %0.4f +/- %0.4f' % (lift30, lift30_error)
     print 'Lift: %0.4f +/- %0.4f' % (lift, lift_error)
 
-    fitted_values = exponential_with_baseline(days, baseline, alpha, beta)
-    plt.plot(days, fitted_values, color="magenta")
-    plt.plot(days, baseline+days*0.0, color='gray', linestyle='--')
-    title = 'Lift: %0.3f +/- %0.3f' % (lift, lift_error)
+    fitted_values = exponential_with_baseline(mean_days, baseline, alpha, beta)
+    plt.plot(mean_days, fitted_values, color="magenta")
+    plt.plot(mean_days, baseline+mean_days*0.0, color='gray', linestyle='--')
+    title = title+' Lift: %0.3f +/- %0.3f' % (lift, lift_error)
     plt.title(title)

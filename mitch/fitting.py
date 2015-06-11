@@ -7,7 +7,7 @@ def exponential_with_baseline(x, baseline, amplitude, scale):
     return baseline + amplitude * np.exp(-x / scale)
 
 
-def exponential_lift(alpha, beta, ndays=15):
+def exponential_lift(alpha, beta, ndays=15.0):
     return alpha*np.exp(-ndays/beta)
 
 

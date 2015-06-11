@@ -4,7 +4,8 @@ from memo import memo
 
 
 @memo
-def convert_date():
+def convert_date(date_string, date_format):
+
     return datetime.strptime(date_string, date_format)
 
 
@@ -13,7 +14,7 @@ def date_string_to_date(date_string, date_format):
     if len(date_string_truncate) < 1:
         return None
     else:
-        return convert_date(date_string_truncate[0])
+        return convert_date(date_string_truncate[0], date_format)
 
 
 def ymd_to_date(date_string):
