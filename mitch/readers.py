@@ -9,7 +9,8 @@ def file_names():
         'users': "%s/spree_users_20150528.csv" % data_dir,
         'campaigns': "%s/product_list.csv" % data_dir,
         'messages': "%s/product_lists_users_20150528.csv" % data_dir,
-        'orders': "%s/spree_orders_20150528.csv" % data_dir
+        'orders': "%s/spree_orders_20150528.csv" % data_dir,
+        'customer_stats': '%s/customer_stats_01.csv' % data_dir
     }
     return files
 

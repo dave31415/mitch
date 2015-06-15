@@ -48,10 +48,53 @@ def make_last_date_lookup(messages=None):
     return user_date_set
 
 
+def make_last_purchase_date_lookup(purchases=None):
+    if purchases is None:
+        print 'reading purchases'
+        purchases = list(read('sales'))
+    user_date_set = defaultdict(set)
+
+    for i, purchase in enumerate(purchases):
+        if 'customer_external_id' not in purchase:
+            continue
+        user_id = purchase['customer_external_id']
+        if not user_id:
+            continue
+        if 'purchase_date' not in purchase:
+            continue
+        purchase_date_string = purchase['purchase_date']
+        if not purchase_date_string:
+            continue
+        purchase_date = du.ymd_to_date(purchase_date_string)
+
+        user_date_set[user_id].add(purchase_date)
+
+    #make sorted numpy array
+    for user_id, date_set in user_date_set.iteritems():
+        user_date_set[user_id] = np.array(sorted(list(date_set)))
+
+    print '%s users in lookup' % len(user_date_set)
+
+    return user_date_set
+
+
 def make_last_date_lookup_function(messages=None):
     # make a closure to return the last message date for a user_id and a date
     # and the number of days since that last message date
     user_date_set = make_last_date_lookup(messages)
+
+    return make_last_date_function(user_date_set)
+
+
+def make_last_purchase_date_lookup_function(purchases=None):
+    # make a closure to return the last purchase date for a user_id and a date
+    # and the number of days since that last purchase
+    user_date_set = make_last_purchase_date_lookup(purchases)
+
+    return make_last_date_function(user_date_set)
+
+
+def make_last_date_function(user_date_set):
 
     def last_date_function(user_id, this_date):
         if user_id not in user_date_set:
