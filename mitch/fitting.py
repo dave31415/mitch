@@ -39,6 +39,7 @@ def fit_ratio_lmfit(days, ratio):
 
 
 def fit_ratio(days, ratio, type='lmfit'):
+    print '%s data points being fit' % len(days)
     if type == 'scipy':
         return fit_ratio_scipy(days, ratio)
     if type == 'lmfit':

@@ -6,8 +6,9 @@ from datetime import timedelta
 from readers import read
 from matplotlib import pylab as plt
 import time
-from fitting import boot_fit, fit_ratio, exponential_lift, exponential_with_baseline
+from fitting import boot_fit, exponential_lift, exponential_with_baseline
 from classify_messages import classify_messages, filter_messages
+from classify_users import user_average_spend_classifier
 
 
 def calculate_last_date(sorted_dates, this_date):
@@ -43,7 +44,7 @@ def make_last_date_lookup(messages=None):
     for user_id, date_set in user_date_set.iteritems():
         user_date_set[user_id] = np.array(sorted(list(date_set)))
 
-    print '%s users in lookup' % len(user_date_set)
+    print '%s users in message date lookup' % len(user_date_set)
 
     return user_date_set
 
@@ -73,7 +74,7 @@ def make_last_purchase_date_lookup(purchases=None):
     for user_id, date_set in user_date_set.iteritems():
         user_date_set[user_id] = np.array(sorted(list(date_set)))
 
-    print '%s users in lookup' % len(user_date_set)
+    print '%s users in purchase date lookup' % len(user_date_set)
 
     return user_date_set
 
@@ -351,6 +352,42 @@ def get_lift_for_all_message_classes(messages=None, purchases=None, doplot=True)
     return data
 
 
+def get_lift_for_all_message_and_user_classes(messages=None, purchases=None,
+                                              doplot=True, user_classifer=None):
+
+    if user_classifer is None:
+        user_classifer = user_average_spend_classifier()
+
+    user_classes = ['low', 'medium', 'high']
+
+    messages, purchases = messages_purchases(messages, purchases)
+    message_classes = list({classify_messages(m['campaign_name'])
+                            for m in messages
+                            if 'campaign_name' in m})
+    print 'Message classes:'
+    for message_class in message_classes:
+        print message_class
+
+    data = {}
+    for message_class in message_classes:
+        mess_filtered_by_message_class = filter_messages(messages, message_class)
+
+        for user_class in user_classes:
+            mess = [m for m in mess_filtered_by_message_class
+                    if user_classifer(m.get('user_id')) == user_class]
+
+            print "%s messages in message_class: %s and user_class: %s" % (len(mess), message_class, user_class)
+            fig = plt.figure()
+            lift_data = \
+                get_lift_for_messages(messages=mess, purchases=purchases,
+                                      doplot=doplot, title=message_class)
+            plt.show()
+            if message_class not in data:
+                data[message_class] = {}
+            data[message_class][user_class] = lift_data
+    return data
+
+
 def plot_ratios(days, ratio, mean_days, mean_ratio, fit, title=''):
 
     plt.plot(days, ratio, color='gray', alpha=0.3)
@@ -385,3 +422,7 @@ def plot_ratios(days, ratio, mean_days, mean_ratio, fit, title=''):
     plt.plot(mean_days, baseline+mean_days*0.0, color='gray', linestyle='--')
     title = title+' Lift: %0.3f +/- %0.3f' % (lift, lift_error)
     plt.title(title)
+
+
+def filter_authors(authors, company):
+    return [a for a in authors if a['company'] == company and a.get('twitter_handle')]
