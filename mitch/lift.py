@@ -7,6 +7,7 @@ from readers import read
 from matplotlib import pylab as plt
 import time
 from fitting import boot_fit, fit_ratio, exponential_lift, exponential_with_baseline
+from classify_messages import classify_messages, filter_messages
 
 
 def calculate_last_date(sorted_dates, this_date):
@@ -242,16 +243,78 @@ def get_lift_data(messages=None, purchases=None):
     return days, ratio, mean_days, mean_ratio
 
 
-def plot_ratios(messages=None, purchases=None, title=''):
+def get_lift_data_and_fit(messages=None, purchases=None):
     days, ratio, mean_days, mean_ratio = get_lift_data(messages, purchases)
+    fit, boot = boot_fit(mean_days, mean_ratio, nboot=1000)
+    return days, ratio, mean_days, mean_ratio, fit, boot
+
+
+def get_lift_scores(fit):
+    baseline = fit['baseline']
+    alpha = fit['alpha']
+    beta = fit['beta']
+
+    lift30 = exponential_lift(alpha, beta)
+    alpha_error = fit['alpha_error']
+    beta_error = fit['beta_error']
+
+    relative_alpha = (alpha_error/alpha)
+    relative_beta = (beta_error/beta)
+
+    relative_error_lift = np.sqrt(relative_alpha**2 + relative_beta**2)
+    lift30_error = lift30 * relative_error_lift
+
+    lift = lift30/baseline
+    lift_error = lift30_error/baseline
+
+    return lift, lift_error
+
+
+def get_lift_for_messages(messages=None, purchases=None, doplot=True, title=''):
+    messages, purchases = messages_purchases(messages, purchases)
+    days, ratio, mean_days, mean_ratio, fit, boot = \
+        get_lift_data_and_fit(messages, purchases)
+    lift, lift_error = get_lift_scores(fit)
+    print 'Lift: %0.4f +/- %0.4f' % (lift, lift_error)
+    return_data = {'days': days, 'ratio': ratio, 'mean_days': mean_days,
+                   'mean_ratio': mean_ratio, 'lift': lift,
+                   'lift_error': lift_error, 'fit': fit}
+
+    if doplot:
+        plot_ratios(days, ratio, mean_days, mean_ratio, fit, title=title)
+
+    return return_data
+
+
+def get_lift_for_all_message_classes(messages=None, purchases=None, doplot=True):
+    messages, purchases = messages_purchases(messages, purchases)
+    message_classes = list({classify_messages(m['campaign_name'])
+                            for m in messages
+                            if 'campaign_name' in m})
+    print 'Message classes:'
+    for message_class in message_classes:
+        print message_class
+
+    data = {}
+    for message_class in message_classes:
+        mess = filter_messages(messages, message_class)
+        print "%s messages in class %s" % (len(mess), message_class)
+        fig = plt.figure()
+        lift_data = \
+            get_lift_for_messages(messages=mess, purchases=purchases,
+                                  doplot=doplot, title=message_class)
+        plt.show()
+        data[message_class] = lift_data
+    return data
+
+
+def plot_ratios(days, ratio, mean_days, mean_ratio, fit, title=''):
 
     plt.plot(days, ratio, color='gray', alpha=0.3)
     plt.xlabel('N days since message')
     plt.ylabel('Sales Lift')
 
     plt.plot(mean_days, mean_ratio, color="blue", marker='o', markersize=8)
-
-    fit, boot = boot_fit(mean_days, mean_ratio, nboot=1000)
     baseline = fit['baseline']
     alpha = fit['alpha']
     beta = fit['beta']
@@ -263,10 +326,8 @@ def plot_ratios(messages=None, purchases=None, title=''):
 
     relative_alpha = (alpha_error/alpha)
     relative_beta = (beta_error/beta)
-
     relative_error_lift = np.sqrt(relative_alpha**2 + relative_beta**2)
     lift30_error = lift30 * relative_error_lift
-
     lift = lift30/baseline
     lift_error = lift30_error/baseline
 
