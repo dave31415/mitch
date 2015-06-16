@@ -36,3 +36,46 @@ def combine_keys(lift_data):
             key = message_class+'_'+user_class
             combined_data[key] = data
     return combined_data
+
+
+def bar_charts(lift_data, var='alpha'):
+    plt.clf()
+    bar_width = 0.5
+    message_classes = [m.capitalize() for m in lift_data.keys()]
+    x = [d['fit'][var] for d in lift_data.values()]
+    index = np.arange(len(message_classes))
+
+    plt.bar(index + bar_width, x, bar_width, alpha=0.5)
+    plt.xticks(index + 1.5*bar_width, message_classes)
+    plt.xlim(0, max(index + bar_width))
+    if var == 'alpha':
+        plt.ylabel("Initial Lift")
+    else:
+        plt.ylabel("Duration (days)")
+
+
+def bar_charts_with_range(lift_data, var='alpha'):
+    plt.clf()
+    bar_width = 0.5
+    message_classes = [m.capitalize() for m in lift_data.keys()]
+    x = np.array([d['fit'][var] for d in lift_data.values()])
+    xerr = np.array([d['fit'][var+'_error'] for d in lift_data.values()])
+    xmin = x - xerr
+    #xmax = x + xerr
+    height = xerr*2
+    index = np.arange(len(message_classes)) + bar_width
+
+    plt.bar(index, height, bar_width, xmin, alpha=0.5)
+    plt.xticks(index + 0.5*bar_width, message_classes)
+    plt.xlim(0, max(index))
+    plt.ylim(ymin=0)
+    plt.plot(index + 0.5*bar_width, x, 'ro')
+    plt.plot(index + 0.5*bar_width, x, color='red', marker='_',
+             linestyle='', markersize=22)
+    if var == 'alpha':
+        plt.ylabel("Initial Lift")
+    else:
+        plt.ylabel("Duration (days)")
+
+
+
