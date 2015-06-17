@@ -289,6 +289,11 @@ def get_lift_data(messages=None, purchases=None):
 
 def get_lift_data_and_fit(messages=None, purchases=None):
     days, ratio, mean_days, mean_ratio = get_lift_data(messages, purchases)
+    #remove last binned point which may not have many points included
+    s = np.argsort(mean_days)
+    mean_days = mean_days[s][:-1]
+    mean_ratio = mean_ratio[s][:-1]
+
     fit, boot = boot_fit(mean_days, mean_ratio, nboot=1000)
     return days, ratio, mean_days, mean_ratio, fit, boot
 
@@ -422,6 +427,7 @@ def plot_ratios(days, ratio, mean_days, mean_ratio, fit, title=''):
     plt.plot(mean_days, baseline+mean_days*0.0, color='gray', linestyle='--')
     title = title+' Lift: %0.3f +/- %0.3f' % (lift, lift_error)
     plt.title(title)
+    plt.show()
 
 
 def filter_authors(authors, company):

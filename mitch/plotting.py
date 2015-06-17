@@ -1,8 +1,9 @@
 from matplotlib import pylab as plt
+from matplotlib import patches
 import numpy as np
 
 
-def plot_lift_data(lift_data):
+def plot_lift_data(lift_data, with_ellipses=True):
     np.random.seed(42113)
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -15,10 +16,19 @@ def plot_lift_data(lift_data):
     num = len(beta)
     beta_jitter = np.random.randn(num)
     np.random.seed(None)
-    beta = np.array(beta) + beta_jitter
+    beta = np.array(beta) + beta_jitter*0.0
 
     ax.plot(beta, alpha, color='red', linestyle='', marker='o', markersize=10)
-    ax.errorbar(beta, alpha, xerr=beta_error, yerr=alpha_error, linestyle='')
+    if not with_ellipses:
+        ax.errorbar(beta, alpha, xerr=beta_error, yerr=alpha_error, linestyle='')
+    else:
+        for x, y, xerr, yerr, in zip(beta, alpha, beta_error, alpha_error):
+            width = 2*xerr
+            height = 2*yerr
+            ellipse = patches.Ellipse((x, y), width, height,
+                                      angle=0.0, linewidth=2,
+                                      fill=True, alpha=0.15, color='gray')
+            ax.add_patch(ellipse)
 
     for a, b, c in zip(alpha, beta, message_class):
         ax.annotate(c, xy=(b, a), xytext=(b+2, a+.01), fontsize=17)
@@ -67,7 +77,7 @@ def bar_charts_with_range(lift_data, var='alpha'):
 
     plt.bar(index, height, bar_width, xmin, alpha=0.5)
     plt.xticks(index + 0.5*bar_width, message_classes)
-    plt.xlim(0, max(index))
+    plt.xlim(0, max(index)+2*bar_width)
     plt.ylim(ymin=0)
     plt.plot(index + 0.5*bar_width, x, 'ro')
     plt.plot(index + 0.5*bar_width, x, color='red', marker='_',

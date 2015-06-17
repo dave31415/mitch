@@ -29,8 +29,8 @@ def exponential_residual(params, x, data, eps_data):
 
 def fit_ratio_lmfit(days, ratio):
     params = Parameters()
-    params.add('alpha', value=0.3, min=-0.3, max=4.0)
-    params.add('beta', value=40.0, min=9.0, max=100.0)
+    params.add('alpha', value=0.3, min=0, max=4.0)
+    params.add('beta', value=40.0, min=6.0, max=50.0)
     params.add('baseline', value=0.75, min=0.5, max=1.0)
 
     eps_data = ratio*0.1+0.1
