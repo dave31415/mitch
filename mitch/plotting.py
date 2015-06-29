@@ -75,7 +75,7 @@ def bar_charts_with_range(lift_data, var='alpha'):
     height = xerr*2
     index = np.arange(len(message_classes)) + bar_width
 
-    plt.bar(index, height, bar_width, xmin, alpha=0.5)
+    plt.bar(index, height, bar_width, xmin, alpha=0.2)
     plt.xticks(index + 0.5*bar_width, message_classes)
     plt.xlim(0, max(index)+2*bar_width)
     plt.ylim(ymin=0)

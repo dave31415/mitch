@@ -233,16 +233,44 @@ def count_sales_days_since_message(messages=None, purchases=None,
     return n_days_counter, n_days_counter_random
 
 
-def get_days_ratio(n_days_counter, n_days_counter_random, scale=1.0, nmax=200):
+def get_days_ratio_deprecated(n_days_counter, n_days_counter_random, scale=1.0, nmax=200):
+    laplace_smoothing = 100.0
     n_days = [n for n in n_days_counter.keys() if n < nmax]
 
     data = [(n, n_days_counter[n], n_days_counter_random[n],
-             (1.0 + n_days_counter[n])/(1.0 + n_days_counter_random[n]))
+             (laplace_smoothing + n_days_counter[n])/(laplace_smoothing + n_days_counter_random[n]))
             for n in n_days if n is not None]
 
     days = np.array([d[0] for d in data])
     ratio = np.array([d[3] for d in data])*scale
     return days, ratio
+
+
+def get_days_ratio_binned(n_days_counter, n_days_counter_random, scale=1.0, nmax=200):
+    laplace_smoothing = 100.0
+    n_days = [n for n in n_days_counter.keys() if n < nmax]
+
+    data = [(n, n_days_counter[n], n_days_counter_random[n],
+             (laplace_smoothing + n_days_counter[n])/(laplace_smoothing + n_days_counter_random[n]))
+            for n in n_days if n is not None]
+
+    days = np.array([d[0] for d in data])
+    ratio = np.array([d[3] for d in data])*scale
+
+    count = np.array([d[1] for d in data])
+    count_random = np.array([d[2] for d in data])
+
+    count_binned_data = bin_days_ratio(days, count)
+
+    days_binned = np.array([i['mean_days'] for i in count_binned_data.values()])
+    count_binned = np.array([i['mean_ratio'] for i in count_binned_data.values()])
+    count_random_binned_data = bin_days_ratio(days, count_random)
+    days_binned2 = np.array([i['mean_days'] for i in count_random_binned_data.values()])
+    assert (days_binned == days_binned2).all()
+    count_random_binned = np.array([i['mean_ratio'] for i in count_random_binned_data.values()])
+    ratio_binned = (count_binned + laplace_smoothing)/(count_random_binned + laplace_smoothing)
+
+    return days, ratio, days_binned, ratio_binned
 
 
 def binning_function(days, factor):
@@ -251,22 +279,22 @@ def binning_function(days, factor):
     return scaled.astype(int)
 
 
-def bin_days_ratio(days, ratio, factor=9.0):
+def bin_days_value(days, value, factor=9.0):
     #TODO: maybe refactor and use itertools
     bins = binning_function(days, factor)
     data = {}
 
-    for day, rat, bin in zip(days, ratio, bins):
+    for day, val, bin in zip(days, value, bins):
         if bin not in data:
-            data[bin] = {'num': 0, 'sum_days': 0.0, 'sum_ratio': 0.0, 'sum_ratio_squared': 0.0}
+            data[bin] = {'num': 0, 'sum_days': 0.0, 'sum_value': 0.0, 'sum_value_squared': 0.0}
         data[bin]['num'] += 1
         data[bin]['sum_days'] += day
-        data[bin]['sum_ratio'] += rat
-        data[bin]['sum_ratio_squared'] += rat*rat
+        data[bin]['sum_value'] += val
+        data[bin]['sum_value_squared'] += (val**2)
     for bin, vals in data.iteritems():
         vals['mean_days'] = vals['sum_days']/vals['num']
-        vals['mean_ratio'] = vals['sum_ratio']/vals['num']
-        vals['sigma_ratio'] = np.sqrt((vals['sum_ratio_squared']/vals['num']) - vals['mean_ratio']**2)
+        vals['mean_value'] = vals['sum_value']/vals['num']
+        vals['sigma_value'] = np.sqrt((vals['sum_value_squared']/vals['num']) - vals['mean_value']**2)
     return data
 
 
@@ -281,8 +309,12 @@ def get_lift_data(messages=None, purchases=None):
     messages, purchases = messages_purchases(messages, purchases)
     n_days_counter, n_days_counter_random = \
         count_sales_days_since_message(messages=messages, purchases=purchases)
-    days, ratio = get_days_ratio(n_days_counter, n_days_counter_random, nmax=200)
-    mean_days, mean_ratio = get_binned_days_ratio_from_counters(days, ratio)
+    if False:
+        days, ratio = get_days_ratio(n_days_counter, n_days_counter_random, nmax=200)
+        mean_days, mean_ratio = get_binned_days_ratio_from_counters(days, ratio)
+    else:
+        days, ratio, mean_days, mean_ratio = \
+            get_days_ratio_binned(n_days_counter, n_days_counter_random, nmax=200)
 
     return days, ratio, mean_days, mean_ratio
 
@@ -373,13 +405,14 @@ def get_lift_for_all_message_and_user_classes(messages=None, purchases=None,
     for message_class in message_classes:
         print message_class
 
+    count = {}
     data = {}
     for message_class in message_classes:
         mess_filtered_by_message_class = filter_messages(messages, message_class)
 
         for user_class in user_classes:
             mess = [m for m in mess_filtered_by_message_class
-                    if user_classifer(m.get('user_id')) == user_class]
+                    if user_classifer(m.get('user_customer_external_id')) == user_class]
 
             print "%s messages in message_class: %s and user_class: %s" % (len(mess), message_class, user_class)
             fig = plt.figure()
@@ -390,6 +423,12 @@ def get_lift_for_all_message_and_user_classes(messages=None, purchases=None,
             if message_class not in data:
                 data[message_class] = {}
             data[message_class][user_class] = lift_data
+            key = (message_class, user_class)
+            count[key] = len(mess)
+    for mess_user_class, number in count.iteritems():
+        message_class, user_class = mess_user_class
+        print "message_class: %s, user_class: %s, number %s" % (message_class, user_class, number)
+
     return data
 
 

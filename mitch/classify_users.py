@@ -1,5 +1,6 @@
 from readers import read
 import numpy as np
+from collections import Counter
 
 
 def user_average_spend_classifier(stats=None):
@@ -42,6 +43,30 @@ def user_average_spend_classifier(stats=None):
 
     return classifier
 
+
+def filter_messages(messages, user_class, user_classifier=None):
+    if user_classifier is None:
+        user_classifier = user_average_spend_classifier()
+
+    return [m for m in messages if 'user_customer_external_id' in m
+            and user_classifier(m['user_customer_external_id']) == user_class]
+
+
+def count_messages_by_user_class(messages, user_classifier=None):
+    if user_classifier is None:
+        user_classifier = user_average_spend_classifier()
+
+    count = Counter()
+    for message in messages:
+        if 'user_customer_external_id' not in message:
+            continue
+        user_id = message['user_customer_external_id']
+        if not user_id:
+            continue
+        user_class = user_classifier(user_id)
+        count[user_class] += 1
+    for user_class, number in count.most_common():
+        print "%s: %s" % (user_class, number)
 
 
 
