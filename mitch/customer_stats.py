@@ -94,7 +94,6 @@ def my_hist(data, bins, range, field, color, label):
     #         range=range, color=color)
     y, bin_edges = np.histogram(data, bins=bins, normed=True)
     bin_centers = 0.5 * (bin_edges[1:] + bin_edges[:-1])
-    #plt.plot(bin_centers, y, '--', color=color, alpha=0.5)
     plt.fill_between(bin_centers, y, color=color, alpha=0.2, label=label)
     plt.xlabel('$log_{10}($ ' + field+' $)$')
     plt.ylabel('Density')

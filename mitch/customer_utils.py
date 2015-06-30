@@ -40,8 +40,28 @@ def make_customer_external_map():
     return func
 
 
-def make_zipcode_map():
-    customer_map = make_customer_external_map()
+def make_customer_external_to_bill_address_id_map():
+    # returns a function which takes customer_external_id and
+    # maps it to address id
+    # or None if it can't find customer external id in user file
+    users = readers.read('users')
+    lookup = {}
+
+    for user in users:
+        lookup[user['customer_external_id']] = user['bill_address_id']
+
+    def func(customer_external_id):
+        if customer_external_id in lookup:
+            return lookup[customer_external_id]
+        else:
+            print "can't find customer_external_id: %s in users file" % customer_external_id
+            return None
+
+    return func
+
+
+def make_zipcode_mapping():
+    customer_map = make_customer_external_to_bill_address_id_map()
     addresses = readers.read('addresses')
     lookup = {}
     for address in addresses:
@@ -59,8 +79,8 @@ def make_zipcode_map():
     return zfunc
 
 
-def distance_of_purchase(customer_external_id, store_number, zipcode_map):
-    zip_address = zipcode_map(customer_external_id)
+def distance_of_purchase(customer_external_id, store_number, zipcode_mapping):
+    zip_address = zipcode_mapping(customer_external_id)
     if zip_address is None:
         return None
     zip_store = zip_for_store(store_number)

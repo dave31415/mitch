@@ -1,6 +1,7 @@
 from matplotlib import pylab as plt
 from matplotlib import patches
 import numpy as np
+import customer_utils as cu
 
 
 def plot_lift_data(lift_data, with_ellipses=True):
@@ -88,4 +89,20 @@ def bar_charts_with_range(lift_data, var='alpha'):
         plt.ylabel("Duration (days)")
 
 
+def calculate_distance_to_purchase_histogram(purchases):
+    zipcode_mapping = cu.make_zipcode_mapping()
+
+    distances = [cu.distance_of_purchase(p['customer_external_id'], p['store_external_id'], zipcode_mapping)
+                 for p in purchases]
+
+    return distances
+
+
+def distance_to_purchase_histogram(purchases):
+    distances = calculate_distance_to_purchase_histogram(purchases)
+    log_distances = [np.log10(0.1+d) for d in distances if d is not None]
+    plt.hist(log_distances, 60, alpha=0.5)
+    plt.xlabel('$log_{10}$ ( distances in miles )')
+    plt.title('Distances between purchase and billing address')
+    return distances
 
