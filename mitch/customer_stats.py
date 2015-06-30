@@ -19,8 +19,6 @@ def zip_for_store(store_num):
     return lookup[store_num]
 
 
-
-
 def sales_grouped_by_users():
     keyfunc = lambda x: x['customer_external_id']
     sales = sorted(list(read('sales')), key=keyfunc)
@@ -57,7 +55,7 @@ def fill_items(data, item_list, suffix=''):
         mu = 0.17
         data['frac_on_sale'+suffix] = (n_on_sale + alpha) / (max(0, data['n_items'+suffix]) + alpha/mu)
         discount = max(0, data['total_discount'+suffix])
-        total = max(0, data['total_spend'+suffix]) + discount + 0.1
+        total = max(0, data['total_spend'+suffix]) + discount + 0.01
         data['frac_discount'+suffix] = discount/total
 
 
@@ -152,6 +150,47 @@ def compare_two_groups(stats_1, stats_2, label_1, label_2, bins=25):
 
     plt.show()
 
+
+def compare_discount_by_online_or_not(stats, online_purchases_only=False):
+    n_items_min = 0
+
+    if online_purchases_only:
+        suffix = '_online'
+    else:
+        suffix = ''
+
+    stats_online = [s for s in stats if s['first_purchase_online']]
+    stats_not_online = [s for s in stats if s['first_purchase_online'] is None]
+
+    frac_discount_online = np.array([i['frac_discount'+suffix] for i in stats_online if i['n_items'] > n_items_min])
+    frac_discount_not_online = np.array([i['frac_discount'] for i in stats_not_online if i['n_items'] > n_items_min])
+
+    ol_mean = frac_discount_online.mean()
+    nol_mean = frac_discount_not_online.mean()
+
+    print 'Means: online=%s, not_online=%s' % (ol_mean, nol_mean)
+
+    range = [0, 1]
+    bins = 20
+    field = ''
+    label_1 = 'Online shoppers'
+    label_2 = 'Non-online shoppers'
+    my_hist(frac_discount_online, bins, range, field, 'blue', label_1)
+    my_hist(frac_discount_not_online, bins, range, field, 'green', label_2)
+
+    plt.xlabel('Average discount fraction')
+    p1 = plt.Rectangle((0, 0), 1, 1, fc='blue', alpha=0.2)
+    p2 = plt.Rectangle((0, 0), 1, 1, fc='green', alpha=0.2)
+    plt.legend([p1, p2], [label_1, label_2])
+
+
+def discount_both(stats):
+    plt.subplot(2, 1, 1)
+    compare_discount_by_online_or_not(stats, online_purchases_only=False)
+    plt.title('All purchases')
+    plt.subplot(2, 1, 2)
+    compare_discount_by_online_or_not(stats, online_purchases_only=True)
+    plt.title('Only online purchases for online shoppers')
 
 if __name__ == '__main__':
     customer_stats(outfile='customer_stats.csv')
