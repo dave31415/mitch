@@ -5,6 +5,22 @@ import numpy as np
 from matplotlib import pylab as plt
 
 
+def zip_for_store(store_num):
+    store_num = int(store_num)
+
+    lookup = {1: '06880',
+              2: '06830',
+              3: '11743',
+              11: '94108',
+              12: '94304'}
+
+    if store_num not in lookup:
+        return None
+    return lookup[store_num]
+
+
+
+
 def sales_grouped_by_users():
     keyfunc = lambda x: x['customer_external_id']
     sales = sorted(list(read('sales')), key=keyfunc)
@@ -17,6 +33,7 @@ def fill_items(data, item_list, suffix=''):
         data['n_orders'+suffix] = 0
         data['n_skus'+suffix] = 0
         data['total_spend'+suffix] = 0.0
+        data['total_discount'+suffix] = 0.0
         data['last_purchase'+suffix] = None
         data['first_purchase'+suffix] = None
         data['avg_spend'+suffix] = None
@@ -25,12 +42,23 @@ def fill_items(data, item_list, suffix=''):
         data['n_orders'+suffix] = len({i['order_number'] for i in item_list})
         data['n_skus'+suffix] = len({i['sku'] for i in item_list})
         data['total_spend'+suffix] = sum([float(i['price']) for i in item_list])
+        data['total_discount'+suffix] = sum([float(i['discount']) for i in item_list])
         data['last_purchase'+suffix] = max(i['purchase_date'] for i in item_list)
         data['first_purchase'+suffix] = min(i['purchase_date'] for i in item_list)
         if data['n_items'+suffix] == 0:
             data['avg_spend'+suffix] = None
         else:
             data['avg_spend'+suffix] = data['total_spend'+suffix]/data['n_items'+suffix]
+
+        #derived quantities
+        n_on_sale = sum([int(i['quantity']) for i in item_list if i['on_sale'] == 't'])
+        n_on_sale = max(0, n_on_sale)
+        alpha = 1.0
+        mu = 0.17
+        data['frac_on_sale'+suffix] = (n_on_sale + alpha) / (max(0, data['n_items'+suffix]) + alpha/mu)
+        discount = max(0, data['total_discount'+suffix])
+        total = max(0, data['total_spend'+suffix]) + discount + 0.1
+        data['frac_discount'+suffix] = discount/total
 
 
 def customer_stats(outfile=None):
